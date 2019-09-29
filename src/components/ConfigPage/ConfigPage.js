@@ -87,7 +87,7 @@ export default class ConfigPage extends React.Component{
     }
 
     submit() {
-        console.log(this.state.options)
+        console.log(this.state.options);
     }
 
     render(){

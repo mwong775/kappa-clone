@@ -86,7 +86,7 @@ export default class Authentication{
      * 
      */
 
-    makeCall(url, method="GET"){
+    makeCall(url, method="GET", data){
         return new Promise((resolve, reject)=>{
             if(this.isAuthenticated()){
                 let headers={
@@ -98,6 +98,7 @@ export default class Authentication{
                     {
                         method,
                         headers,
+                        (data && ...{body: JSON.stringify(data)})
                     })
                     .then(response=>resolve(response))
                     .catch(e=>reject(e))
