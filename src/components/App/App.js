@@ -95,14 +95,14 @@ export default class App extends React.Component{
     }
 
     render(){
-        const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{this.state.selectedOption === item.id ? <b>{item.value}</b> : item.value}</ListItem>);
+        const items = this.state.options.map((item, index) => <ListItem button onClick={() => this.vote(index)}>{this.state.selectedOption === item.id ? <b>{item.value}</b> : item.value}</ListItem>);
 
         const optionsObj = {}
         this.state.options.forEach((option) => { optionsObj[option.id] = option.value })
 
         if (this.state.finishedLoading && this.state.isVisible) {
             return (
-                <div className="App">
+                <div className={"App " + (this.props.layout == 'VC' ? 'VC' : '') + (this.props.layout == 'overlay' ? 'overlay' : '') }>
                     <div className={this.state.theme === 'light' ? 'App-light' : 'App-dark'}>
                         <h2>{this.state.question}</h2>
                         <List>

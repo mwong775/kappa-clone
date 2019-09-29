@@ -10,10 +10,10 @@ const bodyParser = require('body-parser');
 // postgres
 const { Client, Pool } = require('pg')
 const pgOptions = {
-  user: 'preethamrn',
+  user: 'postgres',
   host: 'localhost',
   database: 'kappoll',
-  password: '',
+  password: '1234',
   port: 5432,
 }
 const client = new Client(pgOptions)
