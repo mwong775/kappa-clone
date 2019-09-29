@@ -1,5 +1,8 @@
 import React from 'react'
 import Authentication from '../../util/Authentication/Authentication'
+import Form from 'react-bootstrap/Form'
+import Button from 'react-bootstrap/Button'
+import 'bootstrap/dist/css/bootstrap.min.css'
 
 import './Config.css'
 
@@ -50,7 +53,15 @@ export default class ConfigPage extends React.Component{
             return(
                 <div className="Config">
                     <div className={this.state.theme==='light' ? 'Config-light' : 'Config-dark'}>
-                        There is no configuration needed for this extension!
+                        {/* There is no configuration needed for this extension! */}
+                        <Form>
+                        <Form.Label>Question:</Form.Label>
+                        <Form.Control className="q-input" size="sm" type="text" placeholder="Enter question here"/>
+                        <Button className="btn" variant="secondary" type="reset">Clear</Button>
+                        <Button className="btn" variant="primary" type="submit">
+                        Submit
+                        </Button>
+                    </Form>
                     </div>
                 </div>
             )

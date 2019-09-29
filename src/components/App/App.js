@@ -1,7 +1,5 @@
 import React from 'react'
 import Authentication from '../../util/Authentication/Authentication'
-import 'bootstrap/dist/css/bootstrap.min.css'
-
 import './App.css'
 
 export default class App extends React.Component{
@@ -77,11 +75,12 @@ export default class App extends React.Component{
             return (
                 <div className="App">
                     <div className={this.state.theme === 'light' ? 'App-light' : 'App-dark'}>
-                        <h1>Hello world!</h1>
-                        <p>My token is: {this.Authentication.state.token}</p>
-                        <p>My opaque ID is {this.Authentication.getOpaqueId()}.</p>
-                        <div>{this.Authentication.isModerator() ? <p>I am currently a mod, and here's a special mod button <input value='mod button' type='button'/></p>  : 'I am currently not a mod.'}</div>
-                        <p>I have {this.Authentication.hasSharedId() ? `shared my ID, and my user_id is ${this.Authentication.getUserId()}` : 'not shared my ID'}.</p>
+                    
+                        {/* <h1>Hello world!</h1> */}
+                        {/* <p>My token is: {this.Authentication.state.token}</p> */}
+                        {/* <p>My opaque ID is {this.Authentication.getOpaqueId()}.</p> */}
+                        {/* <div>{this.Authentication.isModerator() ? <p>I am currently a mod, and here's a special mod button <input value='mod button' type='button'/></p>  : 'I am currently not a mod.'}</div> */}
+                        {/* <p>I have {this.Authentication.hasSharedId() ? `shared my ID, and my user_id is ${this.Authentication.getUserId()}` : 'not shared my ID'}.</p> */}
                     </div>
                 </div>
             )
