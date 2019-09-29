@@ -1,11 +1,43 @@
-const fs = require('fs');
-const Hapi = require('hapi');
-const path = require('path');
 const Boom = require('boom');
 const color = require('color');
 const ext = require('commander');
 const jsonwebtoken = require('jsonwebtoken');
-// const request = require('request');
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+
+
+// postgres
+const { Client, Pool } = require('pg')
+const pgOptions = {
+  user: 'preethamrn',
+  host: 'localhost',
+  database: 'kappoll',
+  password: '',
+  port: 5432,
+}
+const client = new Client(pgOptions)
+const pool = new Pool(pgOptions)
+client.connect()
+
+
+// CREATE TABLE votes(
+//   optionID VARCHAR(50) NOT NULL,
+//   userID VARCHAR(50) NOT NULL,
+//   channelID VARCHAR(50) NOT NULL
+// );
+
+// CREATE TABLE options(
+//   optionID VARCHAR(50) PRIMARY KEY,
+//   channelID VARCHAR(50) NOT NULL,
+//   option VARCHAR(500) NOT NULL
+// );
+
+// CREATE TABLE questions(
+//   channelID VARCHAR(50) PRIMARY KEY,
+//   question VARCHAR(500) NOT NULL
+// );
+
 
 // The developer rig uses self-signed certificates.  Node doesn't accept them
 // by default.  Do not use this in production.
@@ -42,44 +74,19 @@ ext.
 const secret = Buffer.from(getOption('secret', 'ENV_SECRET'), 'base64');
 const clientId = getOption('clientId', 'ENV_CLIENT_ID');
 
-const serverOptions = {
-  host: 'localhost',
-  port: 8081,
-  routes: {
-    cors: {
-      origin: ['*']
-    }
-  }
-};
-const serverPathRoot = path.resolve(__dirname, '..', 'conf', 'server');
-if (fs.existsSync(serverPathRoot + '.crt') && fs.existsSync(serverPathRoot + '.key')) {
-  serverOptions.tls = {
-    // If you need a certificate, execute "npm run cert".
-    cert: fs.readFileSync(serverPathRoot + '.crt'),
-    key: fs.readFileSync(serverPathRoot + '.key')
-  };
-}
-const server = new Hapi.Server(serverOptions);
+var app = express();
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
-(async () => {
-  // Handle a viewer request to cycle the color.
-  server.route({
-    method: 'POST',
-    path: '/color/cycle',
-    handler: colorCycleHandler
-  });
+app.post('/color/cycle', colorCycleHandler)
+app.get('/color/query', colorQueryHandler)
 
-  // Handle a new viewer requesting the color.
-  server.route({
-    method: 'GET',
-    path: '/color/query',
-    handler: colorQueryHandler
-  });
+app.post('/vote', voteOption)
+app.get('/votes', getVotes)
+app.post('/poll', createPoll)
 
-  // Start the server.
-  await server.start();
-  console.log(STRINGS.serverStarted, server.info.uri);
-})();
+app.listen(8081);
 
 function usingValue (name) {
   return `Using environment variable for ${name}`;
@@ -120,10 +127,14 @@ function verifyAndDecode (header) {
   throw Boom.unauthorized(STRINGS.invalidAuthHeader);
 }
 
-function colorCycleHandler (req) {
+function colorCycleHandler (req, res) {
   // Verify all requests.
   const payload = verifyAndDecode(req.headers.authorization);
   const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload;
+
+  client.query('SELECT NOW()', (err, res) => {
+    console.log("NOW: ", res.rows)
+  })
 
   // Store the color for the channel.
   let currentColor = channelColors[channelId] || initialColor;
@@ -135,10 +146,10 @@ function colorCycleHandler (req) {
   // Save the new color for the channel.
   channelColors[channelId] = currentColor;
 
-  return currentColor;
+  res.send(currentColor);
 }
 
-function colorQueryHandler (req) {
+function colorQueryHandler (req, res) {
   // Verify all requests.
   const payload = verifyAndDecode(req.headers.authorization);
 
@@ -146,5 +157,96 @@ function colorQueryHandler (req) {
   const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload;
   const currentColor = color(channelColors[channelId] || initialColor).hex();
   verboseLog(STRINGS.sendColor, currentColor, opaqueUserId);
-  return currentColor;
+  res.send(currentColor);
+}
+
+function createPoll(req, res) {
+  const payload = verifyAndDecode(req.headers.authorization)
+
+  const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload;
+  req.body.options = JSON.parse(req.body.options);
+
+  (async () => {
+    const transactionClient = await pool.connect()
+
+    try {
+      await transactionClient.query('BEGIN')
+
+      const clearText1 = 'DELETE FROM questions WHERE questions.channelID = $1'
+      const clearText2 = 'DELETE FROM options WHERE options.channelID = $1'
+      await transactionClient.query(clearText1, [channelId])
+      await transactionClient.query(clearText2, [channelId])
+
+      const questionText = 'INSERT INTO questions(channelID, question) VALUES($1, $2)'
+      await transactionClient.query(questionText, [channelId, req.body.question])
+      const optionsText = 'INSERT INTO options(channelID, optionID, option) VALUES($1, $2, $3)'
+      req.body.options.forEach(async (option) => {
+        await transactionClient.query(optionsText, [channelId, option.id, option.value])
+      })
+
+      await transactionClient.query('COMMIT')
+    } catch (e) {
+      await transactionClient.query('ROLLBACK')
+      throw e
+    } finally {
+      transactionClient.release()
+    }
+  })().catch(e => console.error(e.stack))
+
+  res.send({ success: true, channelId, question: req.body.question, options: req.body.options })
+}
+
+async function getVotes(req, res) {
+  const payload = verifyAndDecode(req.headers.authorization)
+
+  const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload;
+
+  var queryText = 'SELECT question from questions WHERE channelID = $1'
+  const questionRes = await client.query(queryText, [channelId])
+
+  queryText = 'SELECT optionID, option from options WHERE channelID = $1'
+  const optionsRes = await client.query(queryText, [channelId])
+  const options = optionsRes.rows.map((option) => ({ id: option.optionid, value: option.option }))
+
+  queryText = 'SELECT optionID from votes WHERE channelID = $1'
+  const result = await client.query(queryText, [channelId])
+
+  const votes = {}
+  result.rows.forEach((vote) => {
+    if (vote.optionid in votes) {
+      votes[vote.optionid]++
+    } else {
+      votes[vote.optionid] = 1
+    }
+  })
+  res.send({ votes, question: questionRes.rows[0].question, options })
+}
+
+function voteOption(req, res) {
+  const payload = verifyAndDecode(req.headers.authorization)
+
+  const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload;
+
+  (async () => {
+    const transactionClient = await pool.connect()
+
+    try {
+      await transactionClient.query('BEGIN')
+
+      const clearText = 'DELETE FROM votes WHERE votes.channelID = $1 AND votes.userID = $2'
+      await transactionClient.query(clearText, [channelId, opaqueUserId])
+
+      const voteText = 'INSERT INTO votes(channelID, optionID, userID) VALUES($1, $2, $3)'
+      await transactionClient.query(voteText, [channelId, req.body.optionId, opaqueUserId])
+
+      await transactionClient.query('COMMIT')
+    } catch (e) {
+      await transactionClient.query('ROLLBACK')
+      throw e
+    } finally {
+      transactionClient.release()
+    }
+  })().catch(e => console.error(e.stack))
+
+  res.send({ success: true, channelId, optionId: req.body.optionId, userId: opaqueUserId })
 }
