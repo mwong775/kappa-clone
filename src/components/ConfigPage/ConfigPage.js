@@ -3,10 +3,22 @@ import Authentication from '../../util/Authentication/Authentication'
 import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
 import 'bootstrap/dist/css/bootstrap.min.css'
-
+import List from '@material-ui/core/List'
+import ListItem from '@material-ui/core/ListItem'
+import ListItemText from '@material-ui/core/ListItemText'
+import IconButton from '@material-ui/core/IconButton'
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import DeleteIcon from '@material-ui/icons/Delete'
 import './Config.css'
+import { observer } from "mobx-react"
+import {observable, action} from "mobx"
+import {Formik} from 'formik'
+import * as Yup from 'yup'
 
+// @observer
 export default class ConfigPage extends React.Component{
+    // @observable options = ['test', 'test1', 'test2'];
+
     constructor(props){
         super(props)
         this.Authentication = new Authentication()
@@ -15,8 +27,15 @@ export default class ConfigPage extends React.Component{
         this.twitch = window.Twitch ? window.Twitch.ext : null
         this.state={
             finishedLoading:false,
-            theme:'light'
+            theme:'light',
+            inputValue: '',
+            options: ['test', 'test1', 'test2', 'pandas', 'bananas']
+            // options: {
+            //     'option-1': 'test',
+            //     'option-2': 'test1'
+            // }
         }
+        this.addOption = this.addOption.bind(this);
     }
 
     contextUpdate(context, delta){
@@ -29,6 +48,7 @@ export default class ConfigPage extends React.Component{
 
     componentDidMount(){
         // do config page setup as needed here
+        console.log(this.state);
         if(this.twitch){
             this.twitch.onAuthorized((auth)=>{
                 this.Authentication.setToken(auth.token, auth.userId)
@@ -48,7 +68,30 @@ export default class ConfigPage extends React.Component{
         }
     }
 
+    addOption (val) {
+        console.log(val)
+        this.setState(state => {
+            const options = state.options.concat(val.option);
+            return {
+                options
+              };}
+        );
+        // var timestamp = (new Date()).getTime();
+        // console.log(timestamp);
+        // console.log(event.value);
+        // this.state.options['option-' + timestamp ] = event.value;
+    }
+
+    clear() {
+        this.setState({options: []});
+    }
+
+    submit() {
+        console.log(this.state.options)
+    }
+
     render(){
+        const items = this.state.options.map(item => <ListItem>{item}</ListItem> );
         if(this.state.finishedLoading && this.Authentication.isModerator()){
             return(
                 <div className="Config">
@@ -56,12 +99,38 @@ export default class ConfigPage extends React.Component{
                         {/* There is no configuration needed for this extension! */}
                         <Form>
                         <Form.Label>Question:</Form.Label>
-                        <Form.Control className="q-input" size="sm" type="text" placeholder="Enter question here"/>
-                        <Button className="btn" variant="secondary" type="reset">Clear</Button>
-                        <Button className="btn" variant="primary" type="submit">
+                        <Form.Control className="q-input" size="sm" type="text" placeholder="Enter question here" value={this.state.inputValue}/>
+                        <Button className="btn" variant="secondary" type="reset" onClick={() => this.clear()}>Clear</Button>
+                        <Button className="btn" variant="primary" type="submit" onClick={() => this.submit()}>
                         Submit
                         </Button>
                     </Form>
+                         <List>
+                            {items}
+                        </List>
+                        <Formik
+      onSubmit={(val) => this.addOption(val)}
+      initialValues={{
+          option: '',
+      }}
+      validationSchema={Yup.object().shape({option: Yup.string()})}
+    >
+      {({
+        handleSubmit,
+        handleChange,
+        handleBlur,
+        values,
+        touched,
+        isValid,
+        errors,
+      }) => (
+                    <Form onSubmit={handleSubmit}>
+                        <Form.Control size="sm" name="option" type="text" value={values.option} onChange={handleChange} placeholder="Add options here" />
+                        <Button className="btn" variant="primary" type="submit">
+                        Add
+                        </Button>
+                    </Form>)}
+                    </Formik>
                     </div>
                 </div>
             )
