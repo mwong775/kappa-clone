@@ -1,5 +1,7 @@
 import React from 'react'
 import Authentication from '../../util/Authentication/Authentication'
+import List from '@material-ui/core/List'
+import ListItem from '@material-ui/core/ListItem'
 import './App.css'
 
 export default class App extends React.Component{
@@ -12,7 +14,10 @@ export default class App extends React.Component{
         this.state={
             finishedLoading:false,
             theme:'light',
-            isVisible:true
+            isVisible:true,
+
+            question: 'blahlbahlbhalbhlabh',
+            options: ['sheep', 'llama', 'unicorn', 'cow']
         }
     }
 
@@ -69,13 +74,21 @@ export default class App extends React.Component{
             this.twitch.unlisten('broadcast', ()=>console.log('successfully unlistened'))
         }
     }
+
+    vote(i) {
+        console.log(this.state.options[i])
+    }
     
     render(){
+        const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{item}</ListItem> );
         if(this.state.finishedLoading && this.state.isVisible){
             return (
                 <div className="App">
                     <div className={this.state.theme === 'light' ? 'App-light' : 'App-dark'}>
-                    
+                        <h2>{this.state.question}</h2>
+                        <List>
+                            {items}
+                        </List>
                         {/* <h1>Hello world!</h1> */}
                         {/* <p>My token is: {this.Authentication.state.token}</p> */}
                         {/* <p>My opaque ID is {this.Authentication.getOpaqueId()}.</p> */}
