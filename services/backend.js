@@ -174,8 +174,10 @@ function createPoll(req, res) {
 
       const clearText1 = 'DELETE FROM questions WHERE questions.channelID = $1'
       const clearText2 = 'DELETE FROM options WHERE options.channelID = $1'
+      const clearText3 = 'DELETE FROM votes WHERE votes.channelID = $1'
       await transactionClient.query(clearText1, [channelId])
       await transactionClient.query(clearText2, [channelId])
+      await transactionClient.query(clearText3, [channelId])
 
       const questionText = 'INSERT INTO questions(channelID, question) VALUES($1, $2)'
       await transactionClient.query(questionText, [channelId, req.body.question])

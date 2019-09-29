@@ -23,13 +23,13 @@ export default class ConfigPage extends React.Component{
         super(props)
         this.Authentication = new Authentication()
 
-        //if the extension is running on twitch or dev rig, set the shorthand here. otherwise, set to null. 
+        //if the extension is running on twitch or dev rig, set the shorthand here. otherwise, set to null.
         this.twitch = window.Twitch ? window.Twitch.ext : null
         this.state={
             finishedLoading:false,
             theme:'light',
             inputValue: '',
-            options: ['test', 'test1', 'test2', 'pandas', 'bananas']
+            options: []
             // options: {
             //     'option-1': 'test',
             //     'option-2': 'test1'
@@ -54,14 +54,14 @@ export default class ConfigPage extends React.Component{
                 this.Authentication.setToken(auth.token, auth.userId)
                 if(!this.state.finishedLoading){
                     // if the component hasn't finished loading (as in we've not set up after getting a token), let's set it up now.
-    
+
                     // now we've done the setup for the component, let's set the state to true to force a rerender with the correct data.
                     this.setState(()=>{
                         return {finishedLoading:true}
                     })
                 }
             })
-    
+
             this.twitch.onContext((context,delta)=>{
                 this.contextUpdate(context,delta)
             })
@@ -87,7 +87,14 @@ export default class ConfigPage extends React.Component{
     }
 
     submit() {
-        console.log(this.state.options);
+        this.Authentication.makeCall("http://localhost:8081/poll", "POST", {
+            question: this.state.inputValue,
+            options: JSON.stringify(this.state.options.map((option, index) => ({id: index, value: option})))
+        })
+    }
+
+    update(e) {
+        this.setState({ inputValue: e.target.value })
     }
 
     render(){
@@ -99,7 +106,7 @@ export default class ConfigPage extends React.Component{
                         {/* There is no configuration needed for this extension! */}
                         <Form>
                         <Form.Label>Question:</Form.Label>
-                        <Form.Control className="q-input" size="sm" type="text" placeholder="Enter question here" value={this.state.inputValue}/>
+                        <Form.Control className="q-input" size="sm" type="text" placeholder="Enter question here" onChange={(e) => this.update(e)}/>
                         <Button className="btn" variant="secondary" type="reset" onClick={() => this.clear()}>Clear</Button>
                         <Button className="btn" variant="primary" type="submit" onClick={() => this.submit()}>
                         Submit

@@ -17,7 +17,8 @@ export default class App extends React.Component{
             isVisible:true,
 
             question: 'Loading ...',
-            options: []
+            options: [{ id: 1, value: 'loading' }, { id: 2, value: 'loading' }, { id: 3, value: 'loading' }],
+            votes: [],
         }
     }
 
@@ -41,13 +42,14 @@ export default class App extends React.Component{
         if(this.twitch){
             this.twitch.onAuthorized((auth)=>{
                 this.Authentication.setToken(auth.token, auth.userId)
+                setInterval(() => {
+                    this.Authentication.makeCall("http://localhost:8081/votes").then(res => res.json()).then((data) => {
+                        this.setState({question: data.question, options: data.options, votes: data.votes})
+                    })
+                }, 1000)
+
                 if(!this.state.finishedLoading){
                     // if the component hasn't finished loading (as in we've not set up after getting a token), let's set it up now.
-
-                    /*setTimeout(async () => {
-                        const result = await this.Authentication.makeCall("http://localhost:8081/votes")
-                        console.log(result.data)
-                    }, 1000)*/
 
                     // now we've done the setup for the component, let's set the state to true to force a rerender with the correct data.
                     this.setState(()=>{
@@ -82,10 +84,13 @@ export default class App extends React.Component{
 
     vote(i) {
         console.log(this.state.options[i])
+        this.Authentication.makeCall("http://localhost:8081/vote", "POST", {
+            optionId: this.state.options[i].id
+        })
     }
 
     render(){
-        const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{item}</ListItem> );
+        const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{item.value}</ListItem> );
         if(this.state.finishedLoading && this.state.isVisible){
             return (
                 <div className="App">
