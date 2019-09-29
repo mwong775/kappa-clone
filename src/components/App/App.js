@@ -5,6 +5,7 @@ import ListItem from '@material-ui/core/ListItem'
 import './App.css'
 import { PieChart } from 'react-chartkick'
 import 'chart.js'
+import { runInThisContext } from 'vm';
 
 export default class App extends React.Component{
     constructor(props){
@@ -21,6 +22,7 @@ export default class App extends React.Component{
             question: 'Loading ...',
             options: [{ id: 1, value: 'loading' }, { id: 2, value: 'loading' }, { id: 3, value: 'loading' }],
             votes: [],
+            selectedOption: '',
         }
     }
 
@@ -86,13 +88,14 @@ export default class App extends React.Component{
 
     vote(i) {
         console.log(this.state.options[i])
+        this.setState({selectedOption: this.state.options[i].id})
         this.Authentication.makeCall("http://localhost:8081/vote", "POST", {
             optionId: this.state.options[i].id
         })
     }
 
     render(){
-        const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{item.value}</ListItem>);
+        const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{this.state.selectedOption === item.id ? <b>{item.value}</b> : item.value}</ListItem>);
 
         const optionsObj = {}
         this.state.options.forEach((option) => { optionsObj[option.id] = option.value })
