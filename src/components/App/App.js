@@ -3,11 +3,8 @@ import Authentication from '../../util/Authentication/Authentication'
 import List from '@material-ui/core/List'
 import ListItem from '@material-ui/core/ListItem'
 import './App.css'
-
-import * as CanvasJSReact from '../../canvasjs.min'
-// var CanvasJSReact = require( '../../util/canvasjs.react')
-var CanvasJS = CanvasJSReact.CanvasJS;
-var CanvasJSChart = CanvasJSReact.CanvasJSChart;
+import { PieChart } from 'react-chartkick'
+import 'chart.js'
 
 export default class App extends React.Component{
     constructor(props){
@@ -95,33 +92,12 @@ export default class App extends React.Component{
     }
 
     render(){
-        const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{item.value}</ListItem> );
-        const options = {
-			theme: "dark2",
-			animationEnabled: true,
-			exportFileName: "New Year Resolutions",
-			exportEnabled: true,
-			title:{
-				text: "Top Categories of New Year's Resolution"
-			},
-			data: [{
-				type: "pie",
-				showInLegend: true,
-				legendText: "{label}",
-				toolTipContent: "{label}: <strong>{y}%</strong>",
-				indexLabel: "{y}%",
-				indexLabelPlacement: "inside",
-				dataPoints: [
-					{ y: 32, label: "Health" },
-					{ y: 22, label: "Finance" },
-					{ y: 15, label: "Education" },
-					{ y: 19, label: "Career" },
-					{ y: 5, label: "Family" },
-					{ y: 7, label: "Real Estate" }
-				]
-			}]
-		}
-        if(this.state.finishedLoading && this.state.isVisible){
+        const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{item.value}</ListItem>);
+
+        const optionsObj = {}
+        this.state.options.forEach((option) => { optionsObj[option.id] = option.value })
+
+        if (this.state.finishedLoading && this.state.isVisible) {
             return (
                 <div className="App">
                     <div className={this.state.theme === 'light' ? 'App-light' : 'App-dark'}>
@@ -135,9 +111,7 @@ export default class App extends React.Component{
                         {/* <div>{this.Authentication.isModerator() ? <p>I am currently a mod, and here's a special mod button <input value='mod button' type='button'/></p>  : 'I am currently not a mod.'}</div> */}
                         {/* <p>I have {this.Authentication.hasSharedId() ? `shared my ID, and my user_id is ${this.Authentication.getUserId()}` : 'not shared my ID'}.</p> */}
                     </div>
-                    <CanvasJSChart options = {options}
-				/* onRef={ref => this.chart = ref} */
-			/>
+                    <PieChart data={this.state.options.map((option) => ([optionsObj[option.id], this.state.votes[option.id]]))} />
                 </div>
             )
         }else{
