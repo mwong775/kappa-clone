@@ -9,15 +9,15 @@ export default class App extends React.Component{
         super(props)
         this.Authentication = new Authentication()
 
-        //if the extension is running on twitch or dev rig, set the shorthand here. otherwise, set to null. 
+        //if the extension is running on twitch or dev rig, set the shorthand here. otherwise, set to null.
         this.twitch = window.Twitch ? window.Twitch.ext : null
         this.state={
             finishedLoading:false,
             theme:'light',
             isVisible:true,
 
-            question: 'blahlbahlbhalbhlabh',
-            options: ['sheep', 'llama', 'unicorn', 'cow']
+            question: 'Loading ...',
+            options: []
         }
     }
 
@@ -44,6 +44,11 @@ export default class App extends React.Component{
                 if(!this.state.finishedLoading){
                     // if the component hasn't finished loading (as in we've not set up after getting a token), let's set it up now.
 
+                    /*setTimeout(async () => {
+                        const result = await this.Authentication.makeCall("http://localhost:8081/votes")
+                        console.log(result.data)
+                    }, 1000)*/
+
                     // now we've done the setup for the component, let's set the state to true to force a rerender with the correct data.
                     this.setState(()=>{
                         return {finishedLoading:true}
@@ -53,7 +58,7 @@ export default class App extends React.Component{
 
             this.twitch.listen('broadcast',(target,contentType,body)=>{
                 this.twitch.rig.log(`New PubSub message!\n${target}\n${contentType}\n${body}`)
-                // now that you've got a listener, do something with the result... 
+                // now that you've got a listener, do something with the result...
 
                 // do something...
 
@@ -78,7 +83,7 @@ export default class App extends React.Component{
     vote(i) {
         console.log(this.state.options[i])
     }
-    
+
     render(){
         const items = this.state.options.map((item, index) => <ListItem onClick={() => this.vote(index)}>{item}</ListItem> );
         if(this.state.finishedLoading && this.state.isVisible){
